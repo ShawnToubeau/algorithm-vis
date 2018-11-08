@@ -47,9 +47,25 @@ class App extends Component {
       console.log('Calculating FCFS..');
       this.calculateFCFS(this.state.data);
       break;
+      case 'rr':
+      console.log('Calculating RR Fixed..');
+      this.calculateRR(this.state.data);
+      break;
       default:
       console.log('Error: Please select a algorithm');
     }
+  }
+
+  calculateRR(data) {
+    let n = data.length;
+    let waitTime = new Array(n), turnAroundTime = new Array(n);
+    let totalWT = 0, totalTAT = 0;
+
+    this.findWaitTimeRR(data, n, waitTime);
+  }
+
+  findWaitTimeRR(data, n, waitTime) {
+
   }
 
   calculateFCFS(data) {
@@ -59,13 +75,43 @@ class App extends Component {
 
     this.findWaitTimeFCFS(data, n, waitTime);
 
-    console.log('FCFS: ', waitTime);
+    this.findTurnAroundTimeSJF(data, n, waitTime, turnAroundTime);
+
+    for (let i = 0; i < n; i++) {
+      totalWT = totalWT + waitTime[i];
+      totalTAT = totalTAT + turnAroundTime[i];
+      let joined = {...this.state.data}
+
+      joined[i].waitTime = waitTime[i]
+      joined[i].turnAroundTime = turnAroundTime[i]
+
+      this.setState({ joined })
+    }
+    console.log('Average WT: ', totalWT/n, 'Average TAT: ', totalTAT/n);
   }
 
   findWaitTimeFCFS(data, n, waitTime) {
     let service_time = new Array(n);
     service_time[0] = 0;
     waitTime[0] = 0;
+    let gantt = '';
+
+    //sort based on arrival time
+    for(let i=0;i<n;i++)
+    {
+        for(let j=i+1;j<n;j++)
+        {
+           if(data[i].arrivalTime > data[j].arrivalTime)
+           {
+           let temp = data[i];
+           data[i] = data[j];
+           data[j] = temp;
+           }
+         }
+    }
+
+    this.setState({ data })
+
 
     for (let i = 1; i < n; i++) {
       service_time[i] = service_time[i-1] + data[i-1].burstTime;
@@ -76,9 +122,6 @@ class App extends Component {
         waitTime[i] = 0;
       }
     }
-
-
-    
   }
 
   calculateSRT(data) {
@@ -93,7 +136,6 @@ class App extends Component {
     for (let i = 0; i < n; i++) {
       totalWT = totalWT + waitTime[i];
       totalTAT = totalTAT + turnAroundTime[i];
-      console.log('Average WT: ', totalWT/n, 'Average TAT: ', totalTAT/n);
       let joined = {...this.state.data}
 
       joined[i].waitTime = waitTime[i]
@@ -101,10 +143,12 @@ class App extends Component {
 
       this.setState({ joined })
     }
+    console.log('Average WT: ', totalWT/n, 'Average TAT: ', totalTAT/n);
   }
 
   findWaitTimeSRT(data, n, waitTime) {
     let rt = new Array(n);
+    let gantt = '';
 
     for (let i = 0; i < n; i++) {
       rt[i] = data[i].remainingTime;
@@ -126,6 +170,8 @@ class App extends Component {
 
       console.log('Current job: ', shortest+1, 'Current Time: ', time);
 
+      gantt += '|'+time + "  Pid:" + shortest+1+'  '
+
       if (check === false) {
         time++
         continue;
@@ -146,6 +192,8 @@ class App extends Component {
 
         console.log('Current job: ', shortest+1, 'Current Time: ', finishTime);
 
+        gantt += finishTime+'|';
+
         waitTime[shortest] = finishTime - data[shortest].burstTime - data[shortest].arrivalTime;
 
         if (waitTime[shortest] < 0) {
@@ -154,9 +202,10 @@ class App extends Component {
       }
       time++;
     }
+    console.log(gantt);
   }
 
-  calculateSJF(data) { // FIX
+  calculateSJF(data) {
     let n = data.length;
     let waitTime = new Array(n), turnAroundTime = new Array(n);
     let totalWT = 0, totalTAT = 0; 
@@ -175,10 +224,12 @@ class App extends Component {
 
       this.setState({ joined })
     }
+    console.log('Average WT: ', totalWT/n, 'Average TAT: ', totalTAT/n);
   }
 
   findWaitTimeSJF(data, n, waitTime) {
     let rt = new Array(n);
+    let gantt = '';
 
     for (let i = 0; i < n; i++) {
       rt[i] = data[i].burstTime;
@@ -190,22 +241,27 @@ class App extends Component {
 
     while (complete !== n) {
 
-      for (let j = 0; j < n; j++) {
-          if ((data[j].arrivalTime <= time) && (rt[j] < minm) && (rt[j] > 0)) {
-            minm = rt[j];
-            shortest = j;
-            check = true;
-          }
+      if (!check) {
+        for (let j = 0; j < n; j++) {
+            if ((data[j].arrivalTime <= time) && (rt[j] < minm) && (rt[j] > 0)) {
+              minm = rt[j];
+              shortest = j;
+              check = true;
+            }
+        }
       }
+      
 
       console.log('Current job: ', shortest+1, 'Current Time: ', time);
 
-        if (check === false) {
-          time++
-          continue;
-        }
-  
-        rt[shortest]--;
+      gantt += '|'+time + "  Pid:" + shortest+1+'  '
+
+      if (check === false) {
+        time++
+        continue;
+      }
+
+      rt[shortest]--;
       
 
       minm = rt[shortest];
@@ -219,7 +275,8 @@ class App extends Component {
 
         finishTime = time + 1;
 
-        console.log('Current job: ', shortest+1, 'Current Time: ', finishTime);
+        console.log('Current job: ', shortest+1, 'Current Time(finish): ', finishTime);
+        gantt += finishTime+'|';
 
         waitTime[shortest] = finishTime - data[shortest].burstTime - data[shortest].arrivalTime;
 
@@ -229,6 +286,7 @@ class App extends Component {
       }
       time++;
     }
+    console.log(gantt);
   }
 
   findTurnAroundTimeSJF(data, n, wt, tat) {
